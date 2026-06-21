@@ -98,4 +98,23 @@ class OperatorController extends Controller
         $lomba = Lomba::with('tims')->findOrFail($id);
         return view('lomba_display', compact('lomba'));
     }
+
+    // ========================================================
+    // 5. HAPUS LOMBA
+    // ========================================================
+    public function destroy($id)
+    {
+        $lomba = Lomba::findOrFail($id);
+        
+        // Hapus semua data tim yang terkait dengan lomba ini
+        $lomba->tims()->delete();
+        
+        // Hapus histori skor (jika ada)
+        HistoriSkor::where('lomba_id', $lomba->id)->delete();
+        
+        // Hapus data lomba utama
+        $lomba->delete();
+
+        return redirect()->route('dashboard')->with('success', 'Perlombaan beserta semua data tim berhasil dihapus permanen!');
+    }
 }

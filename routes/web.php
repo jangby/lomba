@@ -17,6 +17,7 @@ Route::middleware('auth')->group(function () {
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [OperatorController::class, 'index'])->name('dashboard');
     Route::post('/lomba', [OperatorController::class, 'storeLomba'])->name('lomba.store');
+    Route::delete('/lomba/{id}', [OperatorController::class, 'destroy'])->name('lomba.destroy');
     Route::get('/lomba/{id}', [OperatorController::class, 'show'])->name('lomba.show');
     Route::post('/lomba/{id}/tim', [OperatorController::class, 'storeTim'])->name('tim.store');
     

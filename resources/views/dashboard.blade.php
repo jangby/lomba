@@ -11,7 +11,6 @@
     <div class="py-8 bg-gray-50 min-h-screen">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             
-            <!-- Notifikasi Flash Message -->
             @if (session('success'))
                 <div class="mb-6 bg-emerald-50 border-l-4 border-emerald-500 text-emerald-700 p-4 rounded-r-2xl shadow-sm flex items-center">
                     <span class="text-xl mr-3">✅</span>
@@ -19,10 +18,8 @@
                 </div>
             @endif
 
-            <!-- GRID UTAMA -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                 
-                <!-- LAYOUT KIRI: FORM BUAT LOMBA BARU -->
                 <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 sticky top-8">
                     <div class="border-b border-gray-100 pb-4 mb-5">
                         <h3 class="font-extrabold text-lg text-gray-800 flex items-center gap-2">
@@ -46,7 +43,6 @@
                     </form>
                 </div>
 
-                <!-- LAYOUT KANAN: DAFTAR LOMBA YANG ADA -->
                 <div class="lg:col-span-2 bg-white rounded-3xl shadow-sm border border-gray-100 p-6 md:p-8">
                     <div class="flex items-center justify-between border-b border-gray-100 pb-5 mb-6">
                         <div>
@@ -58,12 +54,10 @@
                         </span>
                     </div>
 
-                    <!-- LIST KARTU LOMBA -->
                     <div class="flex flex-col gap-5">
                         @forelse ($lombas as $lomba)
                             <div class="border border-gray-200 hover:border-indigo-200 bg-white hover:bg-indigo-50/10 p-5 rounded-2xl shadow-sm transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group">
                                 
-                                <!-- Info Lomba -->
                                 <div class="flex-1 min-w-0">
                                     <h4 class="font-extrabold text-gray-900 text-xl tracking-tight group-hover:text-indigo-900 transition truncate">
                                         {{ $lomba->nama_lomba }}
@@ -79,32 +73,34 @@
                                     </div>
                                 </div>
 
-                                <!-- Tombol Kendali/Aksi -->
                                 <div class="flex flex-wrap sm:flex-nowrap items-center gap-2">
-                                    <!-- 1. Tombol Atur Tim -->
+                                    
                                     <a href="{{ route('lomba.show', $lomba->id) }}" title="Pengaturan Tim" 
                                        class="flex items-center justify-center p-2.5 rounded-xl border border-gray-200 hover:border-indigo-300 bg-white text-gray-600 hover:text-indigo-600 shadow-sm transition active:scale-95">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
-                                        <span class="text-xs font-bold ml-1.5 sm:hidden lg:inline">Atur Tim</span>
                                     </a>
 
-                                    <!-- 2. Tombol Smart Board TV -->
                                     <a href="{{ route('lomba.display', $lomba->id) }}" target="_blank" title="Buka Layar Display TV" 
                                        class="flex items-center justify-center p-2.5 rounded-xl border border-purple-200 hover:border-purple-300 bg-purple-50 text-purple-700 hover:bg-purple-100 shadow-sm transition active:scale-95">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-                                        <span class="text-xs font-bold ml-1.5 sm:hidden lg:inline">Layar TV</span>
                                     </a>
 
-                                    <!-- 3. Tombol Remote Kontrol Utama -->
                                     <a href="{{ route('lomba.panel', $lomba->id) }}" title="Masuk Remote Kontrol Nilai" 
                                        class="flex items-center justify-center py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-md shadow-blue-500/10 transition active:scale-95 text-xs uppercase tracking-wider flex-1 sm:flex-none">
-                                        Remote Kontrol &rarr;
+                                        Remote &rarr;
                                     </a>
-                                </div>
 
+                                    <form action="{{ route('lomba.destroy', $lomba->id) }}" method="POST" class="inline-block" onsubmit="return confirm('PERINGATAN!\n\nAnda yakin ingin menghapus Lomba ini secara permanen? Semua tim dan skor yang terdaftar di dalamnya akan ikut hilang.')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" title="Hapus Lomba" class="flex items-center justify-center p-2.5 rounded-xl border border-red-200 hover:border-red-300 bg-red-50 text-red-600 hover:bg-red-100 shadow-sm transition active:scale-95">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                        </button>
+                                    </form>
+
+                                </div>
                             </div>
                         @empty
-                            <!-- State Kosong jika belum ada lomba -->
                             <div class="py-16 flex flex-col items-center justify-center text-gray-400 bg-gray-50 rounded-2xl border border-dashed border-gray-300">
                                 <span class="text-5xl mb-3">🏁</span>
                                 <h5 class="font-bold text-gray-700 text-base">Belum Ada Perlombaan</h5>
