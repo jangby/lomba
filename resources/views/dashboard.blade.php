@@ -4,7 +4,7 @@
             <h2 class="font-black text-2xl text-gray-800 leading-tight uppercase tracking-wide">
                 🖥️ Dashboard Operator
             </h2>
-            <p class="text-sm text-gray-500 mt-1">Selamat datang. Silakan pilih atau buat perlombaan baru untuk memulai.</p>
+            <p class="text-sm text-gray-500 mt-1">Kelola sesi Cerdas Cermat dan Lomba Dakwah Anda dari satu pusat kendali.</p>
         </div>
     </x-slot>
 
@@ -23,22 +23,22 @@
                 <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 sticky top-8">
                     <div class="border-b border-gray-100 pb-4 mb-5">
                         <h3 class="font-extrabold text-lg text-gray-800 flex items-center gap-2">
-                            <span>✨</span> Buat Lomba Baru
+                            <span>✨</span> Buat Sesi Baru
                         </h3>
-                        <p class="text-xs text-gray-400 mt-0.5">Tambahkan sesi kompetisi cerdas cermat baru.</p>
+                        <p class="text-xs text-gray-400 mt-0.5">Tambahkan wadah kompetisi baru.</p>
                     </div>
 
                     <form action="{{ route('lomba.store') }}" method="POST" class="flex flex-col gap-4">
                         @csrf
                         <div>
-                            <label class="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Nama Perlombaan</label>
-                            <input type="text" name="nama_lomba" placeholder="Contoh: LCC Babak Penyisihan Grup A" required 
+                            <label class="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Nama Sesi Perlombaan</label>
+                            <input type="text" name="nama_lomba" placeholder="Contoh: Penyisihan Grup A / Dakwah Sesi 1" required 
                                 class="w-full rounded-xl border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 focus:bg-white transition text-sm font-semibold p-3">
                         </div>
                         
                         <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-bold shadow-md transition active:scale-[0.98] tracking-wide text-sm flex items-center justify-center gap-1">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                            Buat Sesi Lomba
+                            Buat Sesi Sekarang
                         </button>
                     </form>
                 </div>
@@ -47,64 +47,84 @@
                     <div class="flex items-center justify-between border-b border-gray-100 pb-5 mb-6">
                         <div>
                             <h3 class="text-xl font-black text-gray-800 uppercase tracking-tight">Daftar Perlombaan</h3>
-                            <p class="text-xs text-gray-400 font-medium">Kumpulan seluruh sesi cerdas cermat yang telah terdaftar.</p>
+                            <p class="text-xs text-gray-400 font-medium">Kumpulan sesi yang siap dijalankan.</p>
                         </div>
                         <span class="bg-indigo-50 text-indigo-700 text-xs font-bold px-3 py-1.5 rounded-full border border-indigo-100">
                             {{ $lombas->count() }} Total Sesi
                         </span>
                     </div>
 
-                    <div class="flex flex-col gap-5">
+                    <div class="flex flex-col gap-6">
                         @forelse ($lombas as $lomba)
-                            <div class="border border-gray-200 hover:border-indigo-200 bg-white hover:bg-indigo-50/10 p-5 rounded-2xl shadow-sm transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group">
+                            <div class="border border-gray-200 hover:border-indigo-300 bg-white p-5 rounded-3xl shadow-sm transition-all duration-300 group">
                                 
-                                <div class="flex-1 min-w-0">
-                                    <h4 class="font-extrabold text-gray-900 text-xl tracking-tight group-hover:text-indigo-900 transition truncate">
-                                        {{ $lomba->nama_lomba }}
-                                    </h4>
-                                    <div class="flex items-center gap-4 text-xs text-gray-400 font-medium mt-1">
-                                        <span class="flex items-center gap-1">
-                                            👥 {{ $lomba->tims ? $lomba->tims->count() : 0 }} Tim Terdaftar
-                                        </span>
-                                        <span>•</span>
-                                        <span>
-                                            📅 {{ $lomba->created_at->diffForHumans() }}
-                                        </span>
+                                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-5 border-b border-gray-100 pb-4">
+                                    <div class="flex-1 min-w-0">
+                                        <h4 class="font-extrabold text-gray-900 text-xl tracking-tight truncate">
+                                            {{ $lomba->nama_lomba }}
+                                        </h4>
+                                        <p class="text-xs text-gray-400 font-medium mt-1 flex items-center gap-1">
+                                            <span>📅 Dibuat {{ $lomba->created_at->diffForHumans() }}</span>
+                                            <span class="mx-2">•</span>
+                                            <span>👥 {{ $lomba->tims ? $lomba->tims->count() : 0 }} Peserta/Tim Terdaftar</span>
+                                        </p>
+                                    </div>
+                                    
+                                    <div class="flex items-center gap-2">
+                                        <a href="{{ route('lomba.show', $lomba->id) }}" class="flex items-center justify-center py-2 px-4 rounded-xl border border-gray-300 hover:bg-gray-100 text-gray-700 text-xs font-bold shadow-sm transition active:scale-95">
+                                            👥 Atur Peserta
+                                        </a>
+
+                                        <form action="{{ route('lomba.destroy', $lomba->id) }}" method="POST" onsubmit="return confirm('PERINGATAN!\n\nAnda yakin ingin menghapus Sesi ini secara permanen?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="flex items-center justify-center p-2 rounded-xl border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 shadow-sm transition active:scale-95" title="Hapus Sesi">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                            </button>
+                                        </form>
                                     </div>
                                 </div>
 
-                                <div class="flex flex-wrap sm:flex-nowrap items-center gap-2">
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                     
-                                    <a href="{{ route('lomba.show', $lomba->id) }}" title="Pengaturan Tim" 
-                                       class="flex items-center justify-center p-2.5 rounded-xl border border-gray-200 hover:border-indigo-300 bg-white text-gray-600 hover:text-indigo-600 shadow-sm transition active:scale-95">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
-                                    </a>
+                                    <div class="bg-indigo-50/50 rounded-xl border border-indigo-100 p-3">
+                                        <h5 class="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-2 flex items-center gap-1">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span> Cerdas Cermat
+                                        </h5>
+                                        <div class="flex flex-col xl:flex-row gap-1.5">
+                                            <a href="{{ route('lomba.display', $lomba->id) }}" target="_blank" class="flex-1 bg-white border border-indigo-200 text-indigo-700 font-bold py-1.5 rounded-lg text-[10px] text-center hover:bg-indigo-50 transition">📺 TV</a>
+                                            <a href="{{ route('lomba.panel', $lomba->id) }}" class="flex-1 bg-indigo-600 text-white font-bold py-1.5 rounded-lg text-[10px] text-center hover:bg-indigo-700 transition">🎛️ Remote</a>
+                                        </div>
+                                    </div>
 
-                                    <a href="{{ route('lomba.display', $lomba->id) }}" target="_blank" title="Buka Layar Display TV" 
-                                       class="flex items-center justify-center p-2.5 rounded-xl border border-purple-200 hover:border-purple-300 bg-purple-50 text-purple-700 hover:bg-purple-100 shadow-sm transition active:scale-95">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-                                    </a>
+                                    <div class="bg-emerald-50/50 rounded-xl border border-emerald-100 p-3">
+                                        <h5 class="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-2 flex items-center gap-1">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Dakwah
+                                        </h5>
+                                        <div class="flex flex-col xl:flex-row gap-1.5">
+                                            <a href="{{ route('lomba.dakwahDisplay', $lomba->id) }}" target="_blank" class="flex-1 bg-white border border-emerald-200 text-emerald-700 font-bold py-1.5 rounded-lg text-[10px] text-center hover:bg-emerald-50 transition">📺 TV</a>
+                                            <a href="{{ route('lomba.dakwahPanel', $lomba->id) }}" class="flex-1 bg-emerald-600 text-white font-bold py-1.5 rounded-lg text-[10px] text-center hover:bg-emerald-700 transition">🎤 Remote</a>
+                                        </div>
+                                    </div>
 
-                                    <a href="{{ route('lomba.panel', $lomba->id) }}" title="Masuk Remote Kontrol Nilai" 
-                                       class="flex items-center justify-center py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-md shadow-blue-500/10 transition active:scale-95 text-xs uppercase tracking-wider flex-1 sm:flex-none">
-                                        Remote &rarr;
-                                    </a>
-
-                                    <form action="{{ route('lomba.destroy', $lomba->id) }}" method="POST" class="inline-block" onsubmit="return confirm('PERINGATAN!\n\nAnda yakin ingin menghapus Lomba ini secara permanen? Semua tim dan skor yang terdaftar di dalamnya akan ikut hilang.')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" title="Hapus Lomba" class="flex items-center justify-center p-2.5 rounded-xl border border-red-200 hover:border-red-300 bg-red-50 text-red-600 hover:bg-red-100 shadow-sm transition active:scale-95">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                        </button>
-                                    </form>
+                                    <div class="bg-amber-50/50 rounded-xl border border-amber-100 p-3">
+                                        <h5 class="text-[9px] font-black text-amber-600 uppercase tracking-widest mb-2 flex items-center gap-1">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Mudzakarah
+                                        </h5>
+                                        <div class="flex flex-col xl:flex-row gap-1.5">
+                                            <a href="{{ route('lomba.mudzakarahDisplay', $lomba->id) }}" target="_blank" class="flex-1 bg-white border border-amber-200 text-amber-700 font-bold py-1.5 rounded-lg text-[10px] text-center hover:bg-amber-50 transition">📺 TV</a>
+                                            <a href="{{ route('lomba.mudzakarahPanel', $lomba->id) }}" class="flex-1 bg-amber-600 text-white font-bold py-1.5 rounded-lg text-[10px] text-center hover:bg-amber-700 transition">📖 Remote</a>
+                                        </div>
+                                    </div>
 
                                 </div>
+
                             </div>
                         @empty
-                            <div class="py-16 flex flex-col items-center justify-center text-gray-400 bg-gray-50 rounded-2xl border border-dashed border-gray-300">
+                            <div class="py-16 flex flex-col items-center justify-center text-gray-400 bg-gray-50 rounded-3xl border border-dashed border-gray-300">
                                 <span class="text-5xl mb-3">🏁</span>
-                                <h5 class="font-bold text-gray-700 text-base">Belum Ada Perlombaan</h5>
-                                <p class="text-xs text-gray-400 mt-1 max-w-xs text-center">Silakan ketik nama lomba di panel sebelah kiri untuk membuat sesi pertandingan pertama Anda.</p>
+                                <h5 class="font-bold text-gray-700 text-base">Belum Ada Sesi</h5>
+                                <p class="text-xs text-gray-400 mt-1 max-w-xs text-center">Silakan ketik nama acara di form sebelah kiri untuk memulai.</p>
                             </div>
                         @endforelse
                     </div>

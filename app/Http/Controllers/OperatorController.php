@@ -117,4 +117,47 @@ class OperatorController extends Controller
 
         return redirect()->route('dashboard')->with('success', 'Perlombaan beserta semua data tim berhasil dihapus permanen!');
     }
+
+    // ========================================================
+    // FITUR LOMBA DAKWAH
+    // ========================================================
+    public function dakwahPanel($id)
+    {
+        $lomba = Lomba::with('tims')->findOrFail($id);
+        return view('operator.dakwah_panel', compact('lomba'));
+    }
+
+    public function dakwahSync(Request $request, $id)
+    {
+        // Menyiarkan perubahan status timer / nama peserta ke layar display menggunakan WebSockets
+        event(new \App\Events\DakwahUpdated($id, $request->status, $request->waktu, $request->nama_peserta));
+        return response()->json(['status' => 'success']);
+    }
+
+    public function dakwahDisplay($id)
+    {
+        $lomba = Lomba::findOrFail($id);
+        return view('dakwah_display', compact('lomba'));
+    }
+
+    // ========================================================
+    // FITUR LOMBA MUDZAKARAH (BACA KITAB)
+    // ========================================================
+    public function mudzakarahPanel($id)
+    {
+        $lomba = Lomba::with('tims')->findOrFail($id);
+        return view('operator.mudzakarah_panel', compact('lomba'));
+    }
+
+    public function mudzakarahSync(Request $request, $id)
+    {
+        event(new \App\Events\MudzakarahUpdated($id, $request->status, $request->waktu, $request->nama_peserta));
+        return response()->json(['status' => 'success']);
+    }
+
+    public function mudzakarahDisplay($id)
+    {
+        $lomba = Lomba::findOrFail($id);
+        return view('mudzakarah_display', compact('lomba'));
+    }
 }

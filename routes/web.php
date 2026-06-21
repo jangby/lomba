@@ -26,6 +26,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/lomba/{id}/skor/{timId}', [OperatorController::class, 'updateSkor'])->name('lomba.updateSkor');
     Route::post('/lomba/{id}/skor/{timId}/set', [OperatorController::class, 'setSkor'])->name('lomba.setSkor');
     Route::post('/lomba/{id}/reset-skor', [OperatorController::class, 'resetSkor'])->name('lomba.resetSkor');
+
+    // Fitur Khusus Lomba Dakwah
+    Route::get('/lomba/{id}/dakwah-panel', [OperatorController::class, 'dakwahPanel'])->name('lomba.dakwahPanel');
+    Route::post('/lomba/{id}/dakwah-sync', [OperatorController::class, 'dakwahSync'])->name('lomba.dakwahSync');
+    Route::get('/lomba/{id}/dakwah-display', [OperatorController::class, 'dakwahDisplay'])->name('lomba.dakwahDisplay');
+
+    // Fitur Khusus Lomba Mudzakarah
+    Route::get('/lomba/{id}/mudzakarah-panel', [OperatorController::class, 'mudzakarahPanel'])->name('lomba.mudzakarahPanel');
+    Route::post('/lomba/{id}/mudzakarah-sync', [OperatorController::class, 'mudzakarahSync'])->name('lomba.mudzakarahSync');
+    Route::get('/lomba/{id}/mudzakarah-display', [OperatorController::class, 'mudzakarahDisplay'])->name('lomba.mudzakarahDisplay');
 });
 
 // Rute publik untuk Smart Board
