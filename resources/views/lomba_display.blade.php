@@ -3,103 +3,130 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KLASEMEN: {{ $lomba->nama_lomba }}</title>
+    <title>DISPLAY LOMBA - {{ $lomba->nama_lomba }}</title>
+    
+    <!-- Memanggil Tailwind & Laravel Echo (Vite) -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    
     <style>
-        body { background: radial-gradient(circle at 50% 0%, #065f46, #022c22); color: white; min-height: 100vh; overflow: hidden; font-family: 'Segoe UI', sans-serif; }
-        #papan-skor { position: relative; width: 100%; }
-        .kartu-wrapper { position: absolute; width: 100%; transition: transform 1.5s ease-in-out; will-change: transform; }
-        .kartu-inner { transition: border-color 0.5s, background-color 0.5s; }
-        
-        @keyframes kedipPoin { 
-            0% { transform: scale(1); background-color: #064e3b; } 
-            50% { transform: scale(1.02); background-color: #059669; box-shadow: 0 0 30px rgba(52, 211, 153, 0.8); z-index: 50; } 
-            100% { transform: scale(1); background-color: #064e3b; z-index: 1;} 
+        /* Animasi kedip saat nilai berubah */
+        @keyframes pop {
+            0% { transform: scale(1); color: #fff; }
+            50% { transform: scale(1.3); color: #4ade80; text-shadow: 0 0 20px #4ade80; }
+            100% { transform: scale(1); color: #fff; }
         }
-        .poin-masuk .kartu-inner { animation: kedipPoin 1s ease-out; }
+        .skor-update {
+            animation: pop 0.6s ease-out;
+        }
     </style>
 </head>
-<body class="flex flex-col p-8">
+<body class="bg-slate-900 text-white h-screen w-screen overflow-hidden flex flex-col font-sans selection:bg-indigo-500 relative selection:text-white transition-all duration-300" id="board-container">
 
-    <header class="text-center mb-12 relative z-10">
-        <div class="inline-block border-b-4 border-yellow-500 pb-4 px-12">
-            <h1 class="text-4xl md:text-6xl font-black tracking-widest text-emerald-100 uppercase drop-shadow-[0_0_15px_rgba(52,211,153,0.5)]">
-                {{ $lomba->nama_lomba }}
-            </h1>
-            <p class="text-xl text-yellow-400 mt-2 tracking-[0.4em] uppercase font-bold drop-shadow-md">
-                PAPAN SKOR UTAMA
-            </p>
+    <!-- TOMBOL FULLSCREEN MELAYANG -->
+    <button onclick="toggleFullScreen()" id="btn-fullscreen" class="absolute top-4 right-4 z-50 bg-white/10 hover:bg-white/20 text-white/50 hover:text-white border border-white/10 p-3 rounded-full backdrop-blur-sm transition-all duration-300 opacity-30 hover:opacity-100 group shadow-lg">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path>
+        </svg>
+        <span class="absolute right-full mr-3 top-1/2 -translate-y-1/2 bg-black/80 text-xs font-bold px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+            Masuk / Keluar Fullscreen
+        </span>
+    </button>
+
+    <!-- HEADER SMART BOARD -->
+    <header class="py-8 text-center border-b border-slate-800 bg-slate-900/50 shadow-2xl relative z-10">
+        <div class="absolute inset-0 bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-pink-500/20 blur-xl opacity-50"></div>
+        <h1 class="relative text-4xl md:text-5xl font-black uppercase tracking-[0.2em] text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400 drop-shadow-sm">
+            {{ $lomba->nama_lomba }}
+        </h1>
+        <div class="relative mt-3 flex items-center justify-center gap-2">
+            <span class="flex h-3 w-3 relative">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+            </span>
+            <span class="text-slate-400 font-bold tracking-widest text-sm uppercase">Live System Connected</span>
         </div>
     </header>
 
-    <main class="w-full max-w-4xl mx-auto flex-1 relative z-10">
-        <div id="papan-skor">
+    <!-- AREA SKOR UTAMA -->
+    <main class="flex-1 p-8 flex items-center justify-center bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-800 via-slate-900 to-black">
+        <div class="w-full max-w-7xl grid grid-cols-1 md:grid-cols-{{ min($lomba->tims->count(), 4) }} gap-6 md:gap-10">
+            
             @foreach ($lomba->tims as $tim)
-                <div id="card-tim-{{ $tim->id }}" class="kartu-wrapper" data-id="{{ $tim->id }}" data-skor="{{ $tim->skor }}">
-                    <div class="kartu-inner bg-emerald-900 border-2 border-emerald-700 rounded-2xl p-6 flex justify-between items-center shadow-[0_10px_20px_rgba(0,0,0,0.3)] backdrop-blur-sm bg-opacity-90">
-                        <div class="flex items-center gap-6">
-                            <div class="rank-badge text-4xl font-black text-yellow-500 w-16 text-center drop-shadow-md"></div>
-                            <div>
-                                <h3 class="text-3xl font-bold text-white tracking-wide uppercase">{{ $tim->nama_tim }}</h3>
-                                <p class="text-md text-emerald-300 font-medium">Ketua: {{ $tim->ketua }}</p>
-                            </div>
-                        </div>
-                        <div class="skor-teks text-7xl font-black text-yellow-400 drop-shadow-[0_0_15px_rgba(250,204,21,0.6)]">{{ $tim->skor }}</div>
+                <div class="bg-slate-800/40 backdrop-blur-md border border-slate-700/50 rounded-3xl p-8 flex flex-col items-center justify-center shadow-[0_0_50px_-12px_rgba(0,0,0,0.5)] transform transition hover:scale-105 duration-300 group">
+                    
+                    <!-- Nama Tim -->
+                    <h2 class="text-2xl md:text-3xl font-black text-slate-300 uppercase tracking-widest text-center mb-2 group-hover:text-indigo-300 transition-colors">
+                        {{ $tim->nama_tim }}
+                    </h2>
+                    
+                    <!-- Garis Pemisah Estetik -->
+                    <div class="w-16 h-1.5 bg-gradient-to-r from-transparent via-indigo-500 to-transparent rounded-full mb-8 opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                    
+                    <!-- Skor Angka Besar -->
+                    <div class="relative">
+                        <div class="absolute inset-0 bg-indigo-500/20 blur-3xl rounded-full"></div>
+                        <span id="skor-{{ $tim->id }}" class="relative text-7xl md:text-[8rem] leading-none font-black text-white font-mono drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">
+                            {{ $tim->skor }}
+                        </span>
                     </div>
+
                 </div>
             @endforeach
+
         </div>
     </main>
 
+    <!-- JAVASCRIPT: FULLSCREEN & WEBSOCKET -->
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const lombaId = "{{ $lomba->id }}";
+        // --- 1. FITUR FULLSCREEN OTOMATIS/MANUAL ---
+        function toggleFullScreen() {
+            var doc = window.document;
+            var docEl = doc.documentElement;
 
-            // LOGIKA SORTING MELAYANG
-            const gap = 130; 
-            const papanSkor = document.getElementById('papan-skor');
-            const cards = Array.from(document.querySelectorAll('.kartu-wrapper'));
-            if(papanSkor) papanSkor.style.height = (cards.length * gap) + 'px';
+            var requestFullScreen = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
+            var cancelFullScreen = doc.exitFullscreen || doc.mozCancelFullScreen || doc.webkitExitFullscreen || doc.msExitFullscreen;
 
-            function urutkanDanRender() {
-                if(cards.length === 0) return;
-                cards.sort((a, b) => {
-                    let skorA = parseInt(a.getAttribute('data-skor')); let skorB = parseInt(b.getAttribute('data-skor'));
-                    return skorB === skorA ? parseInt(a.getAttribute('data-id')) - parseInt(b.getAttribute('data-id')) : skorB - skorA; 
+            if(!doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
+                // Masuk Fullscreen
+                requestFullScreen.call(docEl).catch(err => {
+                    console.log(`Error attempting to enable fullscreen: ${err.message}`);
                 });
-                cards.forEach((card, index) => {
-                    card.style.transform = `translateY(${index * gap}px)`;
-                    card.querySelector('.rank-badge').innerText = '#' + (index + 1);
-                    const innerCard = card.querySelector('.kartu-inner');
-                    
-                    if(index === 0) {
-                        innerCard.classList.add('border-yellow-400', 'bg-emerald-800'); innerCard.classList.remove('border-emerald-700', 'bg-emerald-900');
-                        card.querySelector('.rank-badge').classList.add('text-yellow-300'); card.querySelector('.rank-badge').classList.remove('text-gray-400');
-                    } else {
-                        innerCard.classList.remove('border-yellow-400', 'bg-emerald-800'); innerCard.classList.add('border-emerald-700', 'bg-emerald-900');
-                        card.querySelector('.rank-badge').classList.remove('text-yellow-300'); card.querySelector('.rank-badge').classList.add('text-gray-400');
-                    }
-                });
+            } else {
+                // Keluar Fullscreen
+                cancelFullScreen.call(doc);
             }
-            urutkanDanRender();
+        }
 
-            // MENDENGARKAN SINYAL UPDATE SKOR DARI OPERATOR
-            window.Echo.channel('lomba.' + lombaId)
-                .listen('.skor.diupdate', (e) => {
-                    const cardTim = document.getElementById('card-tim-' + e.timId);
-                    if (cardTim) {
-                        cardTim.querySelector('.skor-teks').innerText = e.skorBaru;
-                        cardTim.setAttribute('data-skor', e.skorBaru);
+        // Trik Opsional: Double-click dimanapun di layar untuk Fullscreen
+        document.addEventListener('dblclick', function() {
+            toggleFullScreen();
+        });
+
+        // --- 2. FITUR WEBSOCKET (LARAVEL ECHO REAL-TIME) ---
+        // Menunggu sampai Echo berhasil dimuat oleh Vite
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.Echo) {
+                window.Echo.channel(`lomba.{{ $lomba->id }}`)
+                    .listen('SkorDiupdate', (e) => {
                         
-                        // Efek kedip hijau saat skor berubah
-                        cardTim.classList.remove('poin-masuk');
-                        void cardTim.offsetWidth; 
-                        cardTim.classList.add('poin-masuk');
+                        // Tangkap elemen skor yang harus diupdate
+                        const elemenSkor = document.getElementById('skor-' + e.tim_id);
                         
-                        urutkanDanRender(); // Otomatis bertukar posisi jika menyalip
-                    }
-                });
+                        if(elemenSkor) {
+                            // Update angkanya
+                            elemenSkor.innerText = e.skor;
+                            
+                            // Hapus animasi lama (jika ada) lalu jalankan ulang agar kedip
+                            elemenSkor.classList.remove('skor-update');
+                            void elemenSkor.offsetWidth; // Trigger reflow (Trik rahasia CSS)
+                            elemenSkor.classList.add('skor-update');
+                        }
+                    });
+            } else {
+                console.error("Laravel Echo belum dimuat! Pastikan npm run build sudah dijalankan.");
+            }
         });
     </script>
+
 </body>
 </html>
