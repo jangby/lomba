@@ -8,6 +8,7 @@ use App\Models\Tim;
 use App\Models\HistoriSkor;
 use App\Events\SkorDiupdate;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Cache;
 
 class OperatorController extends Controller
 {
@@ -127,13 +128,6 @@ class OperatorController extends Controller
         return view('operator.dakwah_panel', compact('lomba'));
     }
 
-    public function dakwahSync(Request $request, $id)
-    {
-        // Menyiarkan perubahan status timer / nama peserta ke layar display menggunakan WebSockets
-        event(new \App\Events\DakwahUpdated($id, $request->status, $request->waktu, $request->nama_peserta));
-        return response()->json(['status' => 'success']);
-    }
-
     public function dakwahDisplay($id)
     {
         $lomba = Lomba::findOrFail($id);
@@ -149,12 +143,6 @@ class OperatorController extends Controller
         return view('operator.mudzakarah_panel', compact('lomba'));
     }
 
-    public function mudzakarahSync(Request $request, $id)
-    {
-        event(new \App\Events\MudzakarahUpdated($id, $request->status, $request->waktu, $request->nama_peserta));
-        return response()->json(['status' => 'success']);
-    }
-
     public function mudzakarahDisplay($id)
     {
         $lomba = Lomba::findOrFail($id);
@@ -162,11 +150,70 @@ class OperatorController extends Controller
     }
 
     // ========================================================
-    // KONTROL VIDEO BUMPER GLOBAL
+    // LOGIKA MASTER CLOCK & SINKRONISASI PERMANEN
     // ========================================================
     public function bumperSync(Request $request)
     {
+        // Simpan status bumper di Cache server secara global
+        Cache::forever('bumper_status', $request->status);
         event(new \App\Events\BumperUpdated($request->status));
+        return response()->json(['status' => 'success']);
+    }
+
+    public function dakwahSync(Request $request, $id)
+    {
+        $lomba = Lomba::findOrFail($id);
+        
+        if ($request->status === 'start') {
+            if ($lomba->dakwah_status !== 'start') { // Cegah double klik start
+                if ($lomba->dakwah_status === 'reset') { $lomba->dakwah_waktu = $request->waktu; }
+                $lomba->dakwah_last_start = now(); // Catat waktu asli server saat ini
+            }
+        } 
+        elseif ($request->status === 'pause') {
+            // Jika dipause, hitung waktu yang sudah berjalan dan simpan sisa pastinya
+            if ($lomba->dakwah_status === 'start' && $lomba->dakwah_last_start) {
+                $elapsed = now()->diffInSeconds($lomba->dakwah_last_start);
+                $lomba->dakwah_waktu = max(0, $lomba->dakwah_waktu - $elapsed);
+            }
+        }
+        elseif ($request->status === 'reset') {
+            $lomba->dakwah_waktu = $request->waktu;
+        }
+
+        if ($request->status !== 'sync') { $lomba->dakwah_status = $request->status; }
+        $lomba->dakwah_peserta = $request->nama_peserta;
+        $lomba->save();
+
+        event(new \App\Events\DakwahUpdated($id, $request->status, $lomba->dakwah_waktu, $request->nama_peserta));
+        return response()->json(['status' => 'success']);
+    }
+
+    public function mudzakarahSync(Request $request, $id)
+    {
+        $lomba = Lomba::findOrFail($id);
+        
+        if ($request->status === 'start') {
+            if ($lomba->mudzakarah_status !== 'start') {
+                if ($lomba->mudzakarah_status === 'reset') { $lomba->mudzakarah_waktu = $request->waktu; }
+                $lomba->mudzakarah_last_start = now();
+            }
+        } 
+        elseif ($request->status === 'pause') {
+            if ($lomba->mudzakarah_status === 'start' && $lomba->mudzakarah_last_start) {
+                $elapsed = now()->diffInSeconds($lomba->mudzakarah_last_start);
+                $lomba->mudzakarah_waktu = max(0, $lomba->mudzakarah_waktu - $elapsed);
+            }
+        }
+        elseif ($request->status === 'reset') {
+            $lomba->mudzakarah_waktu = $request->waktu;
+        }
+
+        if ($request->status !== 'sync') { $lomba->mudzakarah_status = $request->status; }
+        $lomba->mudzakarah_peserta = $request->nama_peserta;
+        $lomba->save();
+
+        event(new \App\Events\MudzakarahUpdated($id, $request->status, $lomba->mudzakarah_waktu, $request->nama_peserta));
         return response()->json(['status' => 'success']);
     }
 }

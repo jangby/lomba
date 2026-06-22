@@ -99,40 +99,51 @@
         <p class="text-emerald-400 font-sans text-[10px] md:text-xs tracking-[0.3em] uppercase font-bold">© Timer Universal • Ketuk Dua Kali Layar Untuk Fullscreen</p>
     </footer>
 
-    <!-- LOGIKA JAVASCRIPT TIMER, AUDIO & WEBSOCKET -->
     <script>
-        let waktuSisa = 0;
+        // --- 1. MENGAMBIL DATA PERMANEN DARI SERVER (PHP) ---
+        @php
+            $waktuSisaDB = $lomba->dakwah_waktu;
+            if ($lomba->dakwah_status === 'start' && $lomba->dakwah_last_start) {
+                $selisih = now()->diffInSeconds($lomba->dakwah_last_start);
+                $waktuSisaDB = max(0, $waktuSisaDB - $selisih); // Waktu asli berjalan mundur
+            }
+            $namaPesertaDB = $lomba->dakwah_peserta ?: '- MENUNGGU PESERTA -';
+            $statusDB = $lomba->dakwah_status;
+            $bumperDB = \Illuminate\Support\Facades\Cache::get('bumper_status', 'off');
+        @endphp
+
+        // --- 2. DEKLARASI KE JAVASCRIPT ---
+        let waktuSisa = Math.round({{ $waktuSisaDB }}); // Dibulatkan agar tidak ada desimal
+        let statusAcara = "{{ $statusDB }}";
+        let bumperAwal = "{{ $bumperDB }}";
         let intervalTimer = null;
 
         const sndBeep = new Audio('/sounds/beep.mp3'); 
         const sndBuzzer = new Audio('/sounds/buzzer.mp3');
-        sndBeep.volume = 0.7; 
-        sndBuzzer.volume = 1.0;
+        sndBeep.volume = 0.7; sndBuzzer.volume = 1.0;
 
         function formatWaktu(totalDetik) {
-            let menit = Math.floor(totalDetik / 60);
-            let detik = totalDetik % 60;
-            return (menit < 10 ? '0' : '') + menit + ':' + (detik < 10 ? '0' : '') + detik;
+            let bulat = Math.round(totalDetik); // Dibulatkan secara mutlak
+            let m = Math.floor(bulat / 60); 
+            let d = bulat % 60;
+            return (m < 10 ? '0' : '') + m + ':' + (d < 10 ? '0' : '') + d;
         }
 
         function jalankanVisualTimer() {
             const timerEl = document.getElementById('display-timer');
+            let waktuBulat = Math.round(waktuSisa); // Pastikan selalu bulat
 
             timerEl.classList.remove('timer-warning', 'timer-final-countdown', 'text-[9rem]', 'md:text-[14rem]', 'text-[22rem]', 'md:text-[30rem]');
 
-            if (waktuSisa > 10) {
-                timerEl.innerText = formatWaktu(waktuSisa);
+            if (waktuBulat > 10) {
+                timerEl.innerText = formatWaktu(waktuBulat);
                 timerEl.classList.add('text-[9rem]', 'md:text-[14rem]');
-                if (waktuSisa <= 120) {
-                    timerEl.classList.add('timer-warning');
-                }
-            } 
-            else if (waktuSisa > 0) {
-                timerEl.innerText = waktuSisa; 
+                if (waktuBulat <= 120) timerEl.classList.add('timer-warning');
+            } else if (waktuBulat > 0) {
+                timerEl.innerText = waktuBulat; 
                 timerEl.classList.add('text-[22rem]', 'md:text-[30rem]', 'timer-final-countdown'); 
-                sndBeep.play().catch(e => console.log("Audio diblokir browser"));
-            } 
-            else {
+                sndBeep.play().catch(e=>console.log(e));
+            } else {
                 timerEl.innerText = "0";
                 timerEl.classList.add('text-[22rem]', 'md:text-[30rem]', 'timer-final-countdown');
             }
@@ -140,89 +151,83 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             const lombaId = "{{ $lomba->id }}";
+            
+            // Inisialisasi Nama dari DB
+            document.getElementById('display-nama').innerText = "{!! addslashes($namaPesertaDB) !!}";
 
-            window.Echo.channel('lomba.' + lombaId)
-                .listen('.dakwah.updated', (data) => {
-                    
-                    if(data.namaPeserta) {
-                        document.getElementById('display-nama').innerText = data.namaPeserta;
-                    }
-
-                    if (data.status === 'reset') {
-                        clearInterval(intervalTimer);
-                        waktuSisa = data.waktu;
-                        jalankanVisualTimer();
-                    } 
-                    else if (data.status === 'start') {
-                        clearInterval(intervalTimer);
-                        if(waktuSisa <= 0) waktuSisa = data.waktu; 
-                        if(waktuSisa === 0) { jalankanVisualTimer(); } 
-                        
-                        intervalTimer = setInterval(() => {
-                            if (waktuSisa > 0) {
-                                waktuSisa--;
-                                jalankanVisualTimer();
-
-                                if (waktuSisa === 0) {
-                                    clearInterval(intervalTimer);
-                                    sndBuzzer.play().catch(e => console.log("Audio diblokir browser"));
-                                }
-                            } else {
-                                clearInterval(intervalTimer);
-                            }
-                        }, 1000);
-                    } 
-                    else if (data.status === 'pause') {
-                        clearInterval(intervalTimer);
-                    }
-                    else if (data.status === 'sync') {
-                        jalankanVisualTimer();
-                    }
-                });
-        });
-
-        function toggleFullScreen() {
-            let elem = document.documentElement;
-            if (!document.fullscreenElement && !document.mozFullScreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
-                if (elem.requestFullscreen) { elem.requestFullscreen(); }
-                else if (elem.webkitRequestFullscreen) { elem.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT); }
-            } else {
-                if (document.exitFullscreen) { document.exitFullscreen(); }
-            }
-        }
-
-        window.addEventListener('dblclick', function() {
-            toggleFullScreen();
-        });
-    </script>
-
-    <!-- SCRIPT OTOMATIS VIDEO BUMPER (WEBSOCKET) -->
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
+            // Inisialisasi Bumper dari Cache
             const videoContainer = document.getElementById('video-bumper-container');
             const videoBumper = document.getElementById('video-bumper');
+            if(bumperAwal === 'on' && videoContainer) {
+                videoContainer.classList.remove('opacity-0', 'pointer-events-none');
+                videoContainer.classList.add('opacity-100');
+                videoBumper.play().catch(e=>console.log(e));
+            }
 
-            // Mendengarkan sinyal tombol On/Off dari Master Dashboard
+            // AUTO-RESUME TIMER JIKA STATUSNYA START
+            if(statusAcara === 'start' && waktuSisa > 0) {
+                jalankanVisualTimer();
+                intervalTimer = setInterval(() => {
+                    if (waktuSisa > 0) {
+                        waktuSisa--; jalankanVisualTimer();
+                        if (waktuSisa === 0) { clearInterval(intervalTimer); sndBuzzer.play().catch(e=>console.log(e)); }
+                    } else { clearInterval(intervalTimer); }
+                }, 1000);
+            } else {
+                jalankanVisualTimer(); // Tampilkan statis
+            }
+
+            // WEBSOCKET (Live Updates)
             if (window.Echo) {
+                // Sinyal Khusus Lomba
+                window.Echo.channel('lomba.' + lombaId)
+                    .listen('.dakwah.updated', (data) => {
+                        if(data.namaPeserta) document.getElementById('display-nama').innerText = data.namaPeserta;
+                        
+                        if (data.status === 'reset' || data.status === 'pause' || data.status === 'sync') {
+                            clearInterval(intervalTimer); 
+                            waktuSisa = data.waktu; // Waktu dari server sangat presisi
+                            jalankanVisualTimer();
+                        } else if (data.status === 'start') {
+                            clearInterval(intervalTimer);
+                            waktuSisa = data.waktu; 
+                            if(waktuSisa === 0) jalankanVisualTimer(); 
+                            
+                            intervalTimer = setInterval(() => {
+                                if (waktuSisa > 0) {
+                                    waktuSisa--; jalankanVisualTimer();
+                                    if (waktuSisa === 0) { clearInterval(intervalTimer); sndBuzzer.play().catch(e=>console.log(e)); }
+                                } else { clearInterval(intervalTimer); }
+                            }, 1000);
+                        }
+                    });
+
+                // Sinyal Bumper Global
                 window.Echo.channel('layar.global')
                     .listen('.bumper.updated', (data) => {
+                        if(!videoContainer) return;
                         if (data.status === 'on') {
-                            // Munculkan layar dan putar video berulang-ulang
                             videoContainer.classList.remove('opacity-0', 'pointer-events-none');
                             videoContainer.classList.add('opacity-100');
-                            videoBumper.play().catch(e => console.log("Video diblokir: " + e));
+                            videoBumper.play().catch(e => console.log(e));
                         } else if (data.status === 'off') {
-                            // Sembunyikan layar, jeda video, dan kembalikan ke detik 0
                             videoContainer.classList.remove('opacity-100');
                             videoContainer.classList.add('opacity-0', 'pointer-events-none');
-                            setTimeout(() => { 
-                                videoBumper.pause(); 
-                                videoBumper.currentTime = 0; 
-                            }, 1000); // Tunggu efek transisi selesai sebelum di-pause
+                            setTimeout(() => { videoBumper.pause(); videoBumper.currentTime = 0; }, 1000); 
                         }
                     });
             }
         });
+
+        // FULLSCREEN
+        function toggleFullScreen() {
+            let elem = document.documentElement;
+            if (!document.fullscreenElement) {
+                if (elem.requestFullscreen) { elem.requestFullscreen(); }
+                else if (elem.webkitRequestFullscreen) { elem.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT); }
+            } else { if (document.exitFullscreen) { document.exitFullscreen(); } }
+        }
+        window.addEventListener('dblclick', toggleFullScreen);
     </script>
 </body>
 </html>

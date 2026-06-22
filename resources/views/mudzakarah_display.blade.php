@@ -102,7 +102,24 @@
     </footer>
 
     <script>
-        let waktuSisa = 0; let intervalTimer = null;
+        // --- 1. MENGAMBIL DATA PERMANEN DARI SERVER (PHP) ---
+        @php
+            $waktuSisaDB = $lomba->mudzakarah_waktu;
+            if ($lomba->mudzakarah_status === 'start' && $lomba->mudzakarah_last_start) {
+                $selisih = now()->diffInSeconds($lomba->mudzakarah_last_start);
+                $waktuSisaDB = max(0, $waktuSisaDB - $selisih); // Waktu asli berjalan mundur
+            }
+            $namaPesertaDB = $lomba->mudzakarah_peserta ?: '- MENUNGGU PESERTA -';
+            $statusDB = $lomba->mudzakarah_status;
+            $bumperDB = \Illuminate\Support\Facades\Cache::get('bumper_status', 'off');
+        @endphp
+
+        // --- 2. DEKLARASI KE JAVASCRIPT ---
+        let waktuSisa = {{ $waktuSisaDB }};
+        let statusAcara = "{{ $statusDB }}";
+        let bumperAwal = "{{ $bumperDB }}";
+        let intervalTimer = null;
+
         const sndBeep = new Audio('/sounds/beep.mp3'); 
         const sndBuzzer = new Audio('/sounds/buzzer.mp3');
         sndBeep.volume = 0.7; sndBuzzer.volume = 1.0;
@@ -123,7 +140,7 @@
             } else if (waktuSisa > 0) {
                 timerEl.innerText = waktuSisa; 
                 timerEl.classList.add('text-[22rem]', 'md:text-[30rem]', 'timer-final-countdown'); 
-                sndBeep.play().catch(e => console.log(e));
+                sndBeep.play().catch(e=>console.log(e));
             } else {
                 timerEl.innerText = "0";
                 timerEl.classList.add('text-[22rem]', 'md:text-[30rem]', 'timer-final-countdown');
@@ -132,29 +149,75 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             const lombaId = "{{ $lomba->id }}";
+            
+            // Inisialisasi Nama dari DB
+            document.getElementById('display-nama').innerText = "{!! addslashes($namaPesertaDB) !!}";
 
-            window.Echo.channel('lomba.' + lombaId)
-                .listen('.mudzakarah.updated', (data) => {
-                    if(data.namaPeserta) document.getElementById('display-nama').innerText = data.namaPeserta;
-                    
-                    if (data.status === 'reset') {
-                        clearInterval(intervalTimer); waktuSisa = data.waktu; jalankanVisualTimer();
-                    } else if (data.status === 'start') {
-                        clearInterval(intervalTimer);
-                        if(waktuSisa <= 0) waktuSisa = data.waktu; 
-                        if(waktuSisa === 0) jalankanVisualTimer(); 
+            // Inisialisasi Bumper dari Cache
+            const videoContainer = document.getElementById('video-bumper-container');
+            const videoBumper = document.getElementById('video-bumper');
+            if(bumperAwal === 'on' && videoContainer) {
+                videoContainer.classList.remove('opacity-0', 'pointer-events-none');
+                videoContainer.classList.add('opacity-100');
+                videoBumper.play().catch(e=>console.log(e));
+            }
+
+            // AUTO-RESUME TIMER JIKA STATUSNYA START
+            if(statusAcara === 'start' && waktuSisa > 0) {
+                jalankanVisualTimer();
+                intervalTimer = setInterval(() => {
+                    if (waktuSisa > 0) {
+                        waktuSisa--; jalankanVisualTimer();
+                        if (waktuSisa === 0) { clearInterval(intervalTimer); sndBuzzer.play().catch(e=>console.log(e)); }
+                    } else { clearInterval(intervalTimer); }
+                }, 1000);
+            } else {
+                jalankanVisualTimer(); // Tampilkan statis
+            }
+
+            // WEBSOCKET (Live Updates)
+            if (window.Echo) {
+                // Sinyal Khusus Lomba
+                window.Echo.channel('lomba.' + lombaId)
+                    .listen('.mudzakarah.updated', (data) => {
+                        if(data.namaPeserta) document.getElementById('display-nama').innerText = data.namaPeserta;
                         
-                        intervalTimer = setInterval(() => {
-                            if (waktuSisa > 0) {
-                                waktuSisa--; jalankanVisualTimer();
-                                if (waktuSisa === 0) { clearInterval(intervalTimer); sndBuzzer.play().catch(e=>console.log(e)); }
-                            } else { clearInterval(intervalTimer); }
-                        }, 1000);
-                    } else if (data.status === 'pause') { clearInterval(intervalTimer); }
-                      else if (data.status === 'sync') { jalankanVisualTimer(); }
-                });
+                        if (data.status === 'reset' || data.status === 'pause' || data.status === 'sync') {
+                            clearInterval(intervalTimer); 
+                            waktuSisa = data.waktu; // Waktu dari server sangat presisi
+                            jalankanVisualTimer();
+                        } else if (data.status === 'start') {
+                            clearInterval(intervalTimer);
+                            waktuSisa = data.waktu; 
+                            if(waktuSisa === 0) jalankanVisualTimer(); 
+                            
+                            intervalTimer = setInterval(() => {
+                                if (waktuSisa > 0) {
+                                    waktuSisa--; jalankanVisualTimer();
+                                    if (waktuSisa === 0) { clearInterval(intervalTimer); sndBuzzer.play().catch(e=>console.log(e)); }
+                                } else { clearInterval(intervalTimer); }
+                            }, 1000);
+                        }
+                    });
+
+                // Sinyal Bumper Global
+                window.Echo.channel('layar.global')
+                    .listen('.bumper.updated', (data) => {
+                        if(!videoContainer) return;
+                        if (data.status === 'on') {
+                            videoContainer.classList.remove('opacity-0', 'pointer-events-none');
+                            videoContainer.classList.add('opacity-100');
+                            videoBumper.play().catch(e => console.log(e));
+                        } else if (data.status === 'off') {
+                            videoContainer.classList.remove('opacity-100');
+                            videoContainer.classList.add('opacity-0', 'pointer-events-none');
+                            setTimeout(() => { videoBumper.pause(); videoBumper.currentTime = 0; }, 1000); 
+                        }
+                    });
+            }
         });
 
+        // FULLSCREEN
         function toggleFullScreen() {
             let elem = document.documentElement;
             if (!document.fullscreenElement) {
@@ -163,34 +226,6 @@
             } else { if (document.exitFullscreen) { document.exitFullscreen(); } }
         }
         window.addEventListener('dblclick', toggleFullScreen);
-    </script>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const videoContainer = document.getElementById('video-bumper-container');
-            const videoBumper = document.getElementById('video-bumper');
-
-            // Mendengarkan sinyal tombol On/Off dari Master Dashboard
-            if (window.Echo) {
-                window.Echo.channel('layar.global')
-                    .listen('.bumper.updated', (data) => {
-                        if (data.status === 'on') {
-                            // Munculkan layar dan putar video berulang-ulang
-                            videoContainer.classList.remove('opacity-0', 'pointer-events-none');
-                            videoContainer.classList.add('opacity-100');
-                            videoBumper.play().catch(e => console.log("Video diblokir: " + e));
-                        } else if (data.status === 'off') {
-                            // Sembunyikan layar, jeda video, dan kembalikan ke detik 0
-                            videoContainer.classList.remove('opacity-100');
-                            videoContainer.classList.add('opacity-0', 'pointer-events-none');
-                            setTimeout(() => { 
-                                videoBumper.pause(); 
-                                videoBumper.currentTime = 0; 
-                            }, 1000); // Tunggu efek transisi selesai sebelum di-pause
-                        }
-                    });
-            }
-        });
     </script>
 </body>
 </html>
