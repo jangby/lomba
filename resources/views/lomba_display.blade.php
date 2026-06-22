@@ -22,6 +22,13 @@
 </head>
 <body class="flex flex-col p-8 cursor-pointer">
 
+<div id="video-bumper-container" class="fixed inset-0 z-[9999] bg-black flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-1000">
+        <video id="video-bumper" class="w-full h-full object-cover" preload="auto" loop>
+            <source src="/videos/bumper.mp4" type="video/mp4">
+        </video>
+    </div>
+
+
     <button onclick="toggleFullScreen()" class="fixed top-4 right-4 z-50 bg-white/10 hover:bg-white/20 text-white/50 hover:text-white border border-white/10 p-3 rounded-full backdrop-blur-sm transition-all opacity-30 hover:opacity-100 shadow-lg cursor-pointer" title="Masuk/Keluar Fullscreen">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path>
@@ -136,6 +143,34 @@
                         urutkanDanRender(); // Otomatis bertukar posisi jika menyalip
                     }
                 });
+        });
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const videoContainer = document.getElementById('video-bumper-container');
+            const videoBumper = document.getElementById('video-bumper');
+
+            // Mendengarkan sinyal tombol On/Off dari Master Dashboard
+            if (window.Echo) {
+                window.Echo.channel('layar.global')
+                    .listen('.bumper.updated', (data) => {
+                        if (data.status === 'on') {
+                            // Munculkan layar dan putar video berulang-ulang
+                            videoContainer.classList.remove('opacity-0', 'pointer-events-none');
+                            videoContainer.classList.add('opacity-100');
+                            videoBumper.play().catch(e => console.log("Video diblokir: " + e));
+                        } else if (data.status === 'off') {
+                            // Sembunyikan layar, jeda video, dan kembalikan ke detik 0
+                            videoContainer.classList.remove('opacity-100');
+                            videoContainer.classList.add('opacity-0', 'pointer-events-none');
+                            setTimeout(() => { 
+                                videoBumper.pause(); 
+                                videoBumper.currentTime = 0; 
+                            }, 1000); // Tunggu efek transisi selesai sebelum di-pause
+                        }
+                    });
+            }
         });
     </script>
 </body>

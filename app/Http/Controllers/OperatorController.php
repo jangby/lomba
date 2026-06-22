@@ -160,4 +160,13 @@ class OperatorController extends Controller
         $lomba = Lomba::findOrFail($id);
         return view('mudzakarah_display', compact('lomba'));
     }
+
+    // ========================================================
+    // KONTROL VIDEO BUMPER GLOBAL
+    // ========================================================
+    public function bumperSync(Request $request)
+    {
+        event(new \App\Events\BumperUpdated($request->status));
+        return response()->json(['status' => 'success']);
+    }
 }

@@ -18,6 +18,43 @@
                 </div>
             @endif
 
+            <!-- ======================================================== -->
+            <!-- PANEL KONTROL VIDEO BUMPER GLOBAL -->
+            <!-- ======================================================== -->
+            <div class="mb-8 bg-slate-900 rounded-3xl shadow-[0_10px_30px_rgba(0,0,0,0.2)] border border-slate-800 p-6 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+                <div class="absolute inset-0 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-transparent"></div>
+                <div class="relative z-10">
+                    <h3 class="font-black text-xl text-white uppercase tracking-wider flex items-center gap-2">
+                        <span>🎬</span> Master Kontrol Layar Jeda
+                    </h3>
+                    <p class="text-slate-400 text-xs mt-1 font-medium">Nyalakan untuk mengambil alih semua TV display dan memutar video bumper berulang kali.</p>
+                </div>
+                <div class="flex gap-3 w-full md:w-auto relative z-10">
+                    <!-- Tombol ON -->
+                    <button onclick="kontrolBumper('on')" class="flex-1 md:flex-none bg-emerald-500 hover:bg-emerald-600 text-white font-black py-3 px-6 rounded-xl shadow-[0_4px_0_rgb(4,120,87)] active:translate-y-1 active:shadow-[0_0px_0_rgb(4,120,87)] transition-all flex items-center justify-center gap-2 text-sm">
+                        <span class="animate-pulse">▶️</span> PUTAR VIDEO
+                    </button>
+                    <!-- Tombol OFF -->
+                    <button onclick="kontrolBumper('off')" class="flex-1 md:flex-none bg-rose-600 hover:bg-rose-700 text-white font-black py-3 px-6 rounded-xl shadow-[0_4px_0_rgb(159,18,57)] active:translate-y-1 active:shadow-[0_0px_0_rgb(159,18,57)] transition-all flex items-center justify-center gap-2 text-sm">
+                        ⏹️ MATIKAN
+                    </button>
+                </div>
+            </div>
+
+            <!-- SCRIPT FETCH UNTUK TOMBOL BUMPER -->
+            <script>
+                function kontrolBumper(statusAksi) {
+                    fetch("{{ route('bumper.sync') }}", {
+                        method: 'POST',
+                        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ status: statusAksi })
+                    }).catch(err => alert('Koneksi ke server bermasalah!'));
+                }
+            </script>
+            <!-- ======================================================== -->
+
+
+            <!-- GRID UTAMA -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                 
                 <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 sticky top-8">

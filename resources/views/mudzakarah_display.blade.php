@@ -43,6 +43,12 @@
 </head>
 <body class="flex flex-col justify-between items-center p-8 md:p-12 cursor-pointer relative">
 
+<div id="video-bumper-container" class="fixed inset-0 z-[9999] bg-black flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-1000">
+        <video id="video-bumper" class="w-full h-full object-cover" preload="auto" loop>
+            <source src="/videos/bumper.mp4" type="video/mp4">
+        </video>
+    </div>
+
     <div class="ambient-light"></div>
 
     <header class="text-center w-full max-w-6xl border-b border-amber-500/30 pb-6 relative z-10 pointer-events-none mt-2">
@@ -157,6 +163,34 @@
             } else { if (document.exitFullscreen) { document.exitFullscreen(); } }
         }
         window.addEventListener('dblclick', toggleFullScreen);
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const videoContainer = document.getElementById('video-bumper-container');
+            const videoBumper = document.getElementById('video-bumper');
+
+            // Mendengarkan sinyal tombol On/Off dari Master Dashboard
+            if (window.Echo) {
+                window.Echo.channel('layar.global')
+                    .listen('.bumper.updated', (data) => {
+                        if (data.status === 'on') {
+                            // Munculkan layar dan putar video berulang-ulang
+                            videoContainer.classList.remove('opacity-0', 'pointer-events-none');
+                            videoContainer.classList.add('opacity-100');
+                            videoBumper.play().catch(e => console.log("Video diblokir: " + e));
+                        } else if (data.status === 'off') {
+                            // Sembunyikan layar, jeda video, dan kembalikan ke detik 0
+                            videoContainer.classList.remove('opacity-100');
+                            videoContainer.classList.add('opacity-0', 'pointer-events-none');
+                            setTimeout(() => { 
+                                videoBumper.pause(); 
+                                videoBumper.currentTime = 0; 
+                            }, 1000); // Tunggu efek transisi selesai sebelum di-pause
+                        }
+                    });
+            }
+        });
     </script>
 </body>
 </html>

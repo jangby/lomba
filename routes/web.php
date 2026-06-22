@@ -36,6 +36,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/lomba/{id}/mudzakarah-panel', [OperatorController::class, 'mudzakarahPanel'])->name('lomba.mudzakarahPanel');
     Route::post('/lomba/{id}/mudzakarah-sync', [OperatorController::class, 'mudzakarahSync'])->name('lomba.mudzakarahSync');
     Route::get('/lomba/{id}/mudzakarah-display', [OperatorController::class, 'mudzakarahDisplay'])->name('lomba.mudzakarahDisplay');
+
+    // Fitur Kontrol Video Bumper Global
+    Route::post('/bumper-sync', [OperatorController::class, 'bumperSync'])->name('bumper.sync');
 });
 
 // Rute publik untuk Smart Board
